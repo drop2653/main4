@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="ko">
-
 <head>
   <meta charset="UTF-8">
   <title>로페 괴롭히기</title>
@@ -11,12 +10,10 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      /* 변경: flex-start → center */
       height: 100vh;
       background-color: #fafafa;
       margin: 0;
       position: relative;
-      /* padding-top: 40px;  제거 또는 주석 처리 */
     }
 
     h1 {
@@ -66,7 +63,6 @@
         opacity: 1;
         transform: translate(-50%, -50%) scale(1);
       }
-
       100% {
         opacity: 0;
         transform: translate(-50%, -50%) scale(1.6);
@@ -74,7 +70,6 @@
     }
   </style>
 </head>
-
 <body>
 
   <h1>로페 괴롭히기</h1>
@@ -86,13 +81,14 @@
 
   <div class="health-bar" id="healthBar"></div>
 
-  <!-- 효과음 preload -->
+  <!-- 사운드 -->
   <audio id="slapSound1" src="slap1.mp3" preload="auto"></audio>
   <audio id="slapSound2" src="slap2.mp3" preload="auto"></audio>
   <audio id="slapSound3" src="slap3.mp3" preload="auto"></audio>
   <audio id="slapSound4" src="slap4.mp3" preload="auto"></audio>
   <audio id="slapSound5" src="slap5.mp3" preload="auto"></audio>
   <audio id="reloadSound" src="reload.mp3" preload="auto"></audio>
+  <audio id="explosionSound" src="explosion.mp3" preload="auto"></audio>
 
   <script>
     const video = document.getElementById('characterVideo');
@@ -105,11 +101,14 @@
       document.getElementById('slapSound5')
     ];
 
+    const reloadSound = document.getElementById('reloadSound');
+    const explosionSound = document.getElementById('explosionSound');
     const splatImages = ['splat1.png', 'splat2.png', 'splat3.png', 'splat4.png'];
 
     let maxHealth = 10;
     let currentHealth = maxHealth;
     let isRecovering = false;
+    let damageStartTime = null;
 
     function renderHealth() {
       healthBar.innerHTML = '';
@@ -126,22 +125,26 @@
     video.addEventListener('click', (e) => {
       if (isRecovering) return;
 
+      if (currentHealth === maxHealth) {
+        damageStartTime = Date.now(); // 최초 공격 시간 기록
+      }
+
       video.currentTime = 0;
       video.play();
 
       currentHealth--;
       renderHealth();
 
-      // 랜덤 효과음 재생
       const randomSound = slapSounds[Math.floor(Math.random() * slapSounds.length)];
       randomSound.currentTime = 0;
       randomSound.play();
 
-      // 클릭한 위치에 이펙트 표시
       showEffect(e.clientX, e.clientY);
 
       if (currentHealth <= 0) {
-        startRecovery();
+        const elapsed = Date.now() - damageStartTime;
+        const instantKill = elapsed <= 1000;
+        startRecovery(instantKill);
       }
     });
 
@@ -150,41 +153,67 @@
       const randomImage = splatImages[Math.floor(Math.random() * splatImages.length)];
       effect.src = randomImage;
       effect.className = 'effect';
-
-      // 클릭 위치에 이펙트 위치 지정
       effect.style.left = `${x}px`;
       effect.style.top = `${y}px`;
-
       document.body.appendChild(effect);
-
-      setTimeout(() => {
-        effect.remove();
-      }, 600);
+      setTimeout(() => effect.remove(), 600);
     }
 
-    function startRecovery() {
+    function startRecovery(isInstantKill) {
       isRecovering = true;
+      const videoSource = video.querySelector('source');
 
-      const reloadSound = document.getElementById('reloadSound');
-      reloadSound.currentTime = 0;
-      reloadSound.play();
-
-      video.loop = true;
-      video.querySelector('source').src = 'slaping.mp4';
-      video.load();
-      video.play();
-
-      setTimeout(() => {
-        currentHealth = maxHealth;
-        renderHealth();
+      if (isInstantKill) {
+        explosionSound.currentTime = 0;
+        explosionSound.play();
 
         video.loop = false;
-        video.querySelector('source').src = 'normaling.mp4';
+        videoSource.src = 'oh.mp4';
         video.load();
-        video.pause();
+        video.play();
 
-        isRecovering = false;
-      }, 1000);
+        setTimeout(() => {
+          showGameOverButton();
+        }, 1200);
+      } else {
+        reloadSound.currentTime = 0;
+        reloadSound.play();
+
+        video.loop = true;
+        videoSource.src = 'slaping.mp4';
+        video.load();
+        video.play();
+
+        setTimeout(() => {
+          currentHealth = maxHealth;
+          renderHealth();
+
+          video.loop = false;
+          videoSource.src = 'normaling.mp4';
+          video.load();
+          video.pause();
+
+          isRecovering = false;
+        }, 1000);
+      }
+    }
+
+    function showGameOverButton() {
+      const button = document.createElement('button');
+      button.textContent = '게임 종료';
+      button.style.marginTop = '24px';
+      button.style.padding = '12px 24px';
+      button.style.fontSize = '16px';
+      button.style.borderRadius = '8px';
+      button.style.border = 'none';
+      button.style.backgroundColor = '#ff4444';
+      button.style.color = '#fff';
+      button.style.cursor = 'pointer';
+      document.body.appendChild(button);
+
+      button.addEventListener('click', () => {
+        location.reload();
+      });
     }
 
     video.addEventListener('ended', () => {
@@ -194,7 +223,5 @@
       }
     });
   </script>
-
 </body>
-
 </html>
