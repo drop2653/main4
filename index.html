@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8">
+  <title>로페 괴롭히기</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      /* 변경: flex-start → center */
+      height: 100vh;
+      background-color: #fafafa;
+      margin: 0;
+      position: relative;
+      /* padding-top: 40px;  제거 또는 주석 처리 */
+    }
+
+    h1 {
+      font-size: 32px;
+      margin-bottom: 16px;
+      color: #333;
+    }
+
+    video {
+      width: 320px;
+      cursor: pointer;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    }
+
+    .health-bar {
+      margin-top: 16px;
+      display: flex;
+      gap: 4px;
+    }
+
+    .health-unit {
+      width: 20px;
+      height: 20px;
+      background-color: #4caf50;
+      border-radius: 4px;
+      transition: background-color 0.2s;
+    }
+
+    .health-unit.empty {
+      background-color: #ddd;
+    }
+
+    .effect {
+      position: absolute;
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      pointer-events: none;
+      animation: fadeOut 0.6s forwards;
+      transform: translate(-50%, -50%);
+      opacity: 1;
+    }
+
+    @keyframes fadeOut {
+      0% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+      }
+
+      100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(1.6);
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>로페 괴롭히기</h1>
+
+  <video id="characterVideo" preload="auto" playsinline muted>
+    <source src="normaling.mp4" type="video/mp4">
+    브라우저가 비디오를 지원하지 않습니다.
+  </video>
+
+  <div class="health-bar" id="healthBar"></div>
+
+  <!-- 효과음 preload -->
+  <audio id="slapSound1" src="slap1.mp3" preload="auto"></audio>
+  <audio id="slapSound2" src="slap2.mp3" preload="auto"></audio>
+  <audio id="slapSound3" src="slap3.mp3" preload="auto"></audio>
+  <audio id="slapSound4" src="slap4.mp3" preload="auto"></audio>
+  <audio id="slapSound5" src="slap5.mp3" preload="auto"></audio>
+  <audio id="reloadSound" src="reload.mp3" preload="auto"></audio>
+
+  <script>
+    const video = document.getElementById('characterVideo');
+    const healthBar = document.getElementById('healthBar');
+    const slapSounds = [
+      document.getElementById('slapSound1'),
+      document.getElementById('slapSound2'),
+      document.getElementById('slapSound3'),
+      document.getElementById('slapSound4'),
+      document.getElementById('slapSound5')
+    ];
+
+    const splatImages = ['splat1.png', 'splat2.png', 'splat3.png', 'splat4.png'];
+
+    let maxHealth = 10;
+    let currentHealth = maxHealth;
+    let isRecovering = false;
+
+    function renderHealth() {
+      healthBar.innerHTML = '';
+      for (let i = 0; i < maxHealth; i++) {
+        const unit = document.createElement('div');
+        unit.classList.add('health-unit');
+        if (i >= currentHealth) unit.classList.add('empty');
+        healthBar.appendChild(unit);
+      }
+    }
+
+    renderHealth();
+
+    video.addEventListener('click', (e) => {
+      if (isRecovering) return;
+
+      video.currentTime = 0;
+      video.play();
+
+      currentHealth--;
+      renderHealth();
+
+      // 랜덤 효과음 재생
+      const randomSound = slapSounds[Math.floor(Math.random() * slapSounds.length)];
+      randomSound.currentTime = 0;
+      randomSound.play();
+
+      // 클릭한 위치에 이펙트 표시
+      showEffect(e.clientX, e.clientY);
+
+      if (currentHealth <= 0) {
+        startRecovery();
+      }
+    });
+
+    function showEffect(x, y) {
+      const effect = document.createElement('img');
+      const randomImage = splatImages[Math.floor(Math.random() * splatImages.length)];
+      effect.src = randomImage;
+      effect.className = 'effect';
+
+      // 클릭 위치에 이펙트 위치 지정
+      effect.style.left = `${x}px`;
+      effect.style.top = `${y}px`;
+
+      document.body.appendChild(effect);
+
+      setTimeout(() => {
+        effect.remove();
+      }, 600);
+    }
+
+    function startRecovery() {
+      isRecovering = true;
+
+      const reloadSound = document.getElementById('reloadSound');
+      reloadSound.currentTime = 0;
+      reloadSound.play();
+
+      video.loop = true;
+      video.querySelector('source').src = 'slaping.mp4';
+      video.load();
+      video.play();
+
+      setTimeout(() => {
+        currentHealth = maxHealth;
+        renderHealth();
+
+        video.loop = false;
+        video.querySelector('source').src = 'normaling.mp4';
+        video.load();
+        video.pause();
+
+        isRecovering = false;
+      }, 1000);
+    }
+
+    video.addEventListener('ended', () => {
+      if (!isRecovering) {
+        video.currentTime = 0;
+        video.pause();
+      }
+    });
+  </script>
+
+</body>
+
+</html>
